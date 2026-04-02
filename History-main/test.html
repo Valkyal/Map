@@ -1,0 +1,1577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>民国浮生录</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;600;900&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <script src="https://gist.githubusercontent.com/GooYi-C/51b9ee90513f583548e6f2f5e77689a2/raw/world1930"></script>
+    <style>
+        :root {
+            --font-serif: 'Noto Serif SC', serif;
+            --font-brush: 'Ma Shan Zheng', cursive;
+            --bg-main: #1a161c;
+            --bg-panel: rgba(22, 18, 20, 0.75);
+            --border-color: rgba(227, 193, 147, 0.25);
+            --color-primary-red: #d96b63;
+            --color-gold: #e3c193;
+            --color-green: #6a9c78;
+            --text-primary: #ede4d7;
+            --text-secondary: #a89a8e;
+            --text-title: #f5efe5;
+        }
+
+        body {
+            background-color: transparent;
+            font-family: var(--font-serif);
+            margin: 0;
+            padding: 0;
+            font-size: 14px;
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .da-yan-container {
+            background-color: var(--bg-main);
+            background-size: cover;
+            background-position: center;
+            padding: 30px 25px;
+            margin: 10px;
+            box-sizing: border-box;
+            animation: fadeIn 1s ease-out;
+            position: relative;
+            transition: background-image 1.5s ease-in-out;
+            border-radius: 8px;
+            overflow: hidden;
+            min-height: 600px;
+        }
+
+        .da-yan-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(rgba(13, 17, 23, 0.7), rgba(26, 22, 28, 0.85));
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .scroll-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .main-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        #user-name-display {
+            font-family: var(--font-brush);
+            font-size: 3.5em;
+            font-weight: 600;
+            color: var(--text-title);
+            text-shadow: 0 0 15px rgba(227, 193, 147, 0.5);
+            letter-spacing: 5px;
+            margin-bottom: 8px;
+        }
+
+        #time-subtitle {
+            font-family: var(--font-serif);
+            font-size: 1.1em;
+            color: var(--color-gold);
+            letter-spacing: 2px;
+            opacity: 0.9;
+        }
+
+        .main-content-area {
+            display: grid;
+            gap: 25px;
+            grid-template-columns: 1fr;
+            grid-template-areas:
+                "profile"
+                "faction"
+                "background"
+                "historical"
+                "relationships"
+                "map"
+                "household";
+        }
+
+        .info-panel {
+            background-color: var(--bg-panel);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 25px;
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.4), 0 5px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .panel-title {
+            font-family: var(--font-brush);
+            font-size: 2em;
+            color: var(--color-primary-red);
+            margin: 0 auto;
+            padding-bottom: 20px;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+            letter-spacing: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .panel-title::before,
+        .panel-title::after {
+            content: '';
+            display: block;
+            width: 40px;
+            height: 1px;
+            background-color: rgba(227, 193, 147, 0.4);
+        }
+
+        .info-line {
+            display: flex;
+            align-items: flex-start;
+            padding: 12px 0;
+            border-bottom: 1px dashed rgba(227, 193, 147, 0.15);
+            font-size: 1.05em;
+        }
+
+        .info-line:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: 400;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .info-value {
+            text-align: right;
+            font-weight: 600;
+            color: var(--text-primary);
+            flex-grow: 1;
+            word-break: break-all;
+        }
+
+        .info-value.positive {
+            color: var(--color-green);
+        }
+
+        .info-value.negative {
+            color: var(--color-primary-red);
+        }
+
+        /* === 势力总览 === */
+        .info-panel.faction {
+            grid-area: faction;
+        }
+
+        .faction-category {
+            margin-bottom: 15px;
+        }
+
+        .faction-category:last-child {
+            margin-bottom: 0;
+        }
+
+        .faction-header {
+            background: linear-gradient(90deg, rgba(106, 156, 120, 0.2) 0%, transparent 100%);
+            padding: 12px 15px;
+            cursor: pointer;
+            border-left: 4px solid var(--color-green);
+            font-size: 1.1em;
+            font-weight: 600;
+            color: var(--text-title);
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+
+        .faction-header:hover {
+            background: linear-gradient(90deg, rgba(106, 156, 120, 0.3) 0%, transparent 100%);
+        }
+
+        .faction-header::after {
+            content: '▾';
+            transition: transform 0.3s;
+        }
+
+        .faction-category.collapsed .faction-header::after {
+            transform: rotate(-90deg);
+        }
+
+        .faction-content {
+            padding: 15px 5px 5px 5px;
+            transition: all 0.3s ease-out;
+            overflow: hidden;
+        }
+
+        .faction-category.collapsed .faction-content {
+            max-height: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            opacity: 0;
+            border: none;
+            margin: 0;
+        }
+
+        .industry-card,
+        .force-card {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+            padding: 12px 15px;
+            margin-bottom: 12px;
+            border-left: 3px solid var(--color-gold);
+        }
+
+        .card-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: var(--color-gold);
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(227, 193, 147, 0.2);
+        }
+
+        .card-line {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.95em;
+            padding: 4px 0;
+        }
+
+        .card-label {
+            color: var(--text-secondary);
+        }
+
+        .card-value {
+            font-weight: 600;
+        }
+
+        .card-value.income {
+            color: var(--color-green);
+        }
+
+        .card-value.expense {
+            color: var(--color-primary-red);
+        }
+
+        .faction-empty {
+            padding: 10px;
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            text-align: center;
+        }
+
+        .overview-section {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .overview-title {
+            font-size: 1.1em;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            text-align: center;
+        }
+
+        .summary-grid.full-width {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .summary-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px 10px;
+            border-radius: 4px;
+        }
+
+        .summary-title {
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .summary-value {
+            font-size: 1.2em;
+            font-weight: 600;
+            font-family: monospace;
+        }
+
+        /* === 天下暗流 (Background) === */
+        .info-panel.background-events {
+            grid-area: background;
+        }
+
+        .bg-event-item {
+            position: relative;
+            padding: 15px 15px 15px 25px;
+            margin-bottom: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 0 4px 4px 0;
+            border-left: 2px solid var(--color-gold);
+            transition: background 0.3s;
+        }
+
+        .bg-event-item:hover {
+            background: rgba(227, 193, 147, 0.05);
+        }
+
+        .bg-event-item::before {
+            content: '◈';
+            position: absolute;
+            left: -8px;
+            top: 15px;
+            color: var(--color-primary-red);
+            background: var(--bg-main);
+            font-size: 14px;
+            line-height: 1;
+        }
+
+        .bg-event-title {
+            font-family: var(--font-brush);
+            font-size: 1.4em;
+            color: var(--color-gold);
+            margin-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 5px;
+        }
+
+        .bg-event-text {
+            line-height: 1.8;
+            color: #d0c8be;
+            font-size: 0.95em;
+            text-align: justify;
+        }
+
+        .bg-empty {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 20px;
+            font-style: italic;
+        }
+
+        /* === 历史大事进度 === */
+        .info-panel.historical {
+            grid-area: historical;
+        }
+
+        .hist-category {
+            margin-bottom: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-left: 4px solid var(--color-primary-red);
+        }
+
+        .hist-category:last-child {
+            margin-bottom: 0;
+        }
+
+        .hist-header {
+            padding: 15px;
+            cursor: pointer;
+            font-size: 1.6em;
+            color: var(--color-gold);
+            font-family: var(--font-brush);
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+
+        .hist-header:hover {
+            background: rgba(227, 193, 147, 0.05);
+        }
+
+        .hist-header::after {
+            content: '▾';
+            transition: transform 0.3s;
+            font-size: 0.6em;
+            color: var(--text-secondary);
+        }
+
+        .hist-category.collapsed .hist-header::after {
+            transform: rotate(-90deg);
+        }
+
+        .hist-content {
+            padding: 0 15px 15px 15px;
+            transition: all 0.3s ease-out;
+            overflow: hidden;
+        }
+
+        .hist-category.collapsed .hist-content {
+            max-height: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            opacity: 0;
+            border: none;
+            margin: 0;
+        }
+
+        .hist-event:last-child {
+            margin-bottom: 0;
+        }
+
+        .hist-name {
+            font-family: var(--font-brush);
+            font-size: 1.6em;
+            color: var(--color-gold);
+            margin-bottom: 5px;
+        }
+
+        .hist-status {
+            font-size: 0.95em;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+
+        .hist-threshold {
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+
+        .condition-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .condition-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95em;
+        }
+
+        .condition-name {
+            width: 100px;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .condition-progress {
+            width: 60px;
+            color: var(--color-green);
+        }
+
+        .condition-difficulty {
+            width: 60px;
+            color: var(--color-primary-red);
+            font-family: monospace;
+        }
+
+        .condition-details {
+            flex: 1;
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+
+        .hist-empty {
+            padding: 10px;
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            text-align: center;
+        }
+
+        /* === 人脉盘根 === */
+        .info-panel.relationships {
+            grid-area: relationships;
+        }
+
+        .rel-category {
+            margin-bottom: 15px;
+        }
+
+        .rel-header {
+            background: linear-gradient(90deg, rgba(217, 107, 99, 0.2) 0%, transparent 100%);
+            padding: 12px 15px;
+            cursor: pointer;
+            border-left: 4px solid var(--color-primary-red);
+            font-size: 1.1em;
+            font-weight: 600;
+            color: var(--text-title);
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+
+        .rel-header:hover {
+            background: linear-gradient(90deg, rgba(217, 107, 99, 0.3) 0%, transparent 100%);
+        }
+
+        .rel-header::after {
+            content: '▾';
+            transition: transform 0.3s;
+        }
+
+        .rel-category.collapsed .rel-header::after {
+            transform: rotate(-90deg);
+        }
+
+        .rel-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            padding: 15px 0 5px 0;
+            transition: all 0.3s ease-out;
+            overflow: hidden;
+        }
+
+        .rel-category.collapsed .rel-content {
+            max-height: 0;
+            padding: 0;
+            opacity: 0;
+            border: none;
+            margin: 0;
+        }
+
+        .rel-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px inset rgba(227, 193, 147, 0.2);
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 4px;
+        }
+
+        .rel-name {
+            font-weight: 600;
+            font-size: 1.05em;
+            color: var(--color-gold);
+        }
+
+        .rel-tag {
+            font-size: 0.8em;
+            padding: 2px 8px;
+            border-radius: 12px;
+            white-space: nowrap;
+        }
+
+        .tag-subordinate {
+            background: rgba(106, 156, 120, 0.15);
+            border: 1px solid var(--color-green);
+            color: #8fbc9b;
+        }
+
+        .tag-attitude {
+            background: rgba(217, 107, 99, 0.15);
+            border: 1px solid var(--color-primary-red);
+            color: #eba09a;
+        }
+
+        .rel-empty {
+            padding: 10px;
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+
+        /* === 民国二十年前后地图 === */
+        .info-panel.map {
+            grid-area: map;
+        }
+
+        .map-subtitle {
+            font-family: var(--font-serif);
+            font-size: 1.1em;
+            color: var(--color-gold);
+            text-align: center;
+            margin-top: -10px;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+            min-height: 1.5em;
+        }
+
+        .map-wrapper {
+            width: 100%;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        #map-container {
+            position: relative;
+            width: 100%;
+            height: 0;
+            padding-top: 85%;
+        }
+
+        #echarts-map {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #map-paths {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .flow-line {
+            fill: none;
+            stroke: rgba(227, 193, 147, 0.4);
+            stroke-width: 1.5;
+            stroke-dasharray: 6 6;
+            animation: flow-animation 90s linear infinite;
+        }
+
+        @keyframes flow-animation {
+            to {
+                stroke-dashoffset: -1000;
+            }
+        }
+
+        .location-marker {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            cursor: pointer;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.3s ease;
+            z-index: 2;
+            border: 1px solid #000;
+        }
+
+        .location-marker::after {
+            content: attr(data-label);
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            color: #e3c193;
+            text-shadow: 1px 1px 2px #000, -1px -1px 2px #000;
+            white-space: nowrap;
+            pointer-events: none;
+            font-weight: 600;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+
+        .location-marker:hover::after {
+            opacity: 1;
+            color: #fff;
+        }
+
+        .marker-capital {
+            background-color: var(--color-primary-red);
+            box-shadow: 0 0 10px 3px rgba(217, 107, 99, 0.7);
+            width: 14px;
+            height: 14px;
+            animation: pulse-base 2s infinite;
+        }
+
+        .marker-hub {
+            background-color: var(--color-gold);
+            box-shadow: 0 0 8px 2px rgba(227, 193, 147, 0.5);
+        }
+
+        .marker-military {
+            background-color: #5c8b99;
+            box-shadow: 0 0 8px 2px rgba(92, 139, 153, 0.7);
+            border-radius: 0;
+            transform: translate(-50%, -50%) rotate(45deg);
+        }
+
+        .marker-military::after {
+            transform: translateX(-50%) rotate(-45deg);
+            top: -25px;
+        }
+
+        .location-marker.active {
+            background-color: #3CFF84;
+            box-shadow: 0 0 20px 8px rgba(60, 255, 132, 0.6);
+            animation: jump 1.2s infinite cubic-bezier(0.5, 0.05, 1, 0.5);
+            z-index: 3;
+            border-color: #fff;
+        }
+
+        @keyframes jump {
+
+            0%,
+            100% {
+                transform: translate(-50%, -50%) scale(1.3);
+            }
+
+            50% {
+                transform: translate(-50%, -80%) scale(1.3);
+            }
+        }
+
+        .marker-military.active {
+            animation: jump-rotate 1.2s infinite cubic-bezier(0.5, 0.05, 1, 0.5);
+        }
+
+        @keyframes jump-rotate {
+
+            0%,
+            100% {
+                transform: translate(-50%, -50%) rotate(45deg) scale(1.3);
+            }
+
+            50% {
+                transform: translate(-50%, -80%) rotate(45deg) scale(1.3);
+            }
+        }
+
+        /* === 内府 === */
+        .info-panel.household {
+            grid-area: household;
+        }
+
+        .household-list {
+            display: grid;
+            gap: 20px;
+            perspective: 1000px;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        }
+
+        .consort-card {
+            position: relative;
+            aspect-ratio: 2 / 3;
+            transform-style: preserve-3d;
+            transition: transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            cursor: pointer;
+        }
+
+        .consort-card.is-flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 8px;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .card-front {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.3s;
+        }
+
+        .consort-card:not(.is-flipped):hover .card-front {
+            transform: scale(1.02);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+            border-color: var(--color-gold);
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+            background-size: cover;
+            background-position: center top;
+            border: 2px solid var(--color-gold);
+            filter: sepia(0.2);
+        }
+
+        .consort-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+            border-bottom: 1px inset rgba(227, 193, 147, 0.2);
+            padding-bottom: 10px;
+        }
+
+        .consort-name {
+            font-family: var(--font-brush);
+            font-size: 1.8em;
+            color: var(--color-gold);
+        }
+
+        .consort-title {
+            background-color: var(--color-primary-red);
+            color: var(--text-title);
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+
+        .consort-details {
+            font-size: 0.95em;
+            line-height: 1.8;
+            color: var(--text-secondary);
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .consort-details strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* 卷轴弹窗 */
+        #modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: flex-start;
+            z-index: 3000;
+            perspective: 1000px;
+            padding-top: 5vh;
+        }
+
+        #modal-scroll {
+            position: relative;
+            width: 420px;
+            height: 90vh;
+            max-height: 900px;
+            background-color: #e9dbc3;
+            background-image: url('data:image/jpeg;base64,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');
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+            border: 1px solid #c9b391;
+            transform: translateY(-110%);
+            transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            display: flex;
+        }
+
+        #modal-scroll.visible {
+            transform: translateY(0);
+        }
+
+        #modal-header {
+            width: 80px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-right: 2px solid #8c6f46;
+            border-left: 10px solid #583e23;
+            box-sizing: border-box;
+            background: rgba(227, 193, 147, 0.3);
+            flex-shrink: 0;
+        }
+
+        #modal-title {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            font-size: 32px;
+            letter-spacing: 12px;
+            color: #3a2718;
+            font-family: var(--font-brush);
+            margin-top: 30px;
+        }
+
+        #modal-seal {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            font-size: 20px;
+            color: #a12b2b;
+            border: 3px solid #a12b2b;
+            padding: 20px 8px;
+            margin-top: auto;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        #modal-text-container {
+            flex-grow: 1;
+            padding: 25px 30px;
+            overflow-y: auto;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            letter-spacing: 2px;
+            line-height: 2.2;
+            font-size: 16px;
+            color: #2c2520;
+        }
+
+        #modal-text-container .section-title {
+            font-size: 18px;
+            color: #8c6f46;
+            font-weight: bold;
+            margin-right: 15px;
+            border-bottom: 2px solid #8c6f46;
+            padding-bottom: 5px;
+        }
+
+        @media (min-width: 1200px) {
+            .main-content-area {
+                grid-template-columns: 1fr 1.3fr;
+                grid-template-areas:
+                    "profile faction"
+                    "background background"
+                    "historical historical"
+                    "relationships map"
+                    "household household";
+            }
+        }
+
+        @media (min-width: 900px) and (max-width: 1199px) {
+            .main-content-area {
+                grid-template-columns: 1fr 1fr;
+                grid-template-areas:
+                    "profile faction"
+                    "background background"
+                    "historical historical"
+                    "relationships map"
+                    "household household";
+            }
+        }
+
+        @media (max-width: 768px) {
+            #user-name-display {
+                font-size: 2.8em;
+            }
+
+            .da-yan-container {
+                padding: 15px 10px;
+            }
+
+            .summary-grid,
+            .summary-grid.full-width {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="user-name-source" style="display:none;">沐成</div>
+    <textarea id="raw-data-source" style="display:none;">$1</textarea>
+    <div id="status-output-container"></div>
+    <script>
+        (function () {
+            // 1. 初始化
+            const dataSource = document.getElementById('raw-data-source');
+            const outputContainer = document.getElementById('status-output-container');
+            const userNameSource = document.getElementById('user-name-source');
+            if (!dataSource || !outputContainer || !userNameSource) return;
+            let rawXmlString = dataSource.tagName === 'TEXTAREA' ? dataSource.value.trim() : dataSource.innerHTML.trim();
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(
+                rawXmlString.trim().startsWith('<?xml')
+                    ? rawXmlString
+                    : '<?xml version="1.0" encoding="UTF-8"?>\n' + rawXmlString,
+                "application/xml"
+            );
+            // 辅助函数
+            const getValue = (selector, parent = xmlDoc) => parent.querySelector(selector)?.textContent.trim() || '';
+            const getAttr = (selector, attr, parent = xmlDoc) => parent.querySelector(selector)?.getAttribute(attr) || '';
+            // 2. 基础数据提取
+            const userName = userNameSource.textContent.trim() || '侠士';
+            const currentTime = getValue("time") || '时辰未知';
+            const identity = getValue("identity") || '----';
+            const location = getValue("location") || '不知所踪';
+            const ICONS = {
+                identity: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e3c193" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
+                reputation: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e3c193" stroke-width="1.5"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>'
+            };
+            // 3. 构建HTML组件
+            // [个人概况]
+            const reputationNode = xmlDoc.querySelector("reputation");
+            const repValue = getAttr("reputation", "value");
+            const reputationText = reputationNode && repValue
+                ? `${getAttr("reputation", "title")} (<span class="${parseInt(repValue) >= 0 ? 'positive' : 'negative'}">${repValue}</span>)`
+                : '暂无名望';
+            const userProfileHtml = `
+        <div class="info-panel profile">
+            <h2 class="panel-title">鈞鑒</h2>
+            <div class="info-line"><span class="info-label">${ICONS.identity}当前身份:</span><span class="info-value">${identity}</span></div>
+            <div class="info-line"><span class="info-label">${ICONS.reputation}当前声望:</span><span class="info-value">${reputationText}</span></div>
+        </div>`;
+            // [势力总览]（保持原样）
+            const factionNode = xmlDoc.querySelector("faction");
+            let factionHtml = '<div class="info-panel faction"><h2 class="panel-title">势力总览</h2>';
+            if (factionNode) {
+                const industryNodes = factionNode.querySelectorAll("industry");
+                let industriesContent = '';
+                if (industryNodes.length > 0) {
+                    industryNodes.forEach(node => {
+                        const balance = getValue('balance', node);
+                        const balanceClass = parseInt(balance) >= 0 ? 'income' : 'expense';
+                        industriesContent += `
+                    <div class="industry-card">
+                        <div class="card-title">${node.getAttribute('name') || '未知产业'}</div>
+                        <div class="card-line"><span class="card-label">月产量:</span><span class="card-value">${getValue('output', node) || '---'}</span></div>
+                        <div class="card-line"><span class="card-label">月支出:</span><span class="card-value expense">${getValue('cost', node) || '0'} 两</span></div>
+                        <div class="card-line"><span class="card-label">月收入:</span><span class="card-value income">${getValue('income', node) || '0'} 两</span></div>
+                        <div class="card-line"><span class="card-label">月结余:</span><span class="card-value ${balanceClass}">${balance || '0'} 两</span></div>
+                    </div>
+                `;
+                    });
+                } else {
+                    industriesContent = '<div class="faction-empty">暂无产业</div>';
+                }
+                const forceNodes = factionNode.querySelectorAll("force");
+                let forcesContent = '';
+                if (forceNodes.length > 0) {
+                    forceNodes.forEach(node => {
+                        forcesContent += `
+                    <div class="force-card">
+                        <div class="card-title">${node.getAttribute('name') || '未知兵马'}</div>
+                        <div class="card-line"><span class="card-label">兵力:</span><span class="card-value">${getValue('size', node) || '---'}</span></div>
+                        <div class="card-line"><span class="card-label">装备:</span><span class="card-value">${getValue('equipment', node) || '---'}</span></div>
+                        <div class="card-line"><span class="card-label">月饷银:</span><span class="card-value expense">${getValue('wage', node) || '0'} 两</span></div>
+                        <div class="card-line"><span class="card-label">月粮草:</span><span class="card-value expense">${getValue('rations', node) || '0'} 石</span></div>
+                    </div>
+                `;
+                    });
+                } else {
+                    forcesContent = '<div class="faction-empty">暂无兵马</div>';
+                }
+                const summaryNode = factionNode.querySelector("summary");
+                const treasuryNode = factionNode.querySelector("treasury");
+                const netBalanceVal = getValue('net_balance', summaryNode);
+                const summaryContent = `
+            <div class="overview-section">
+                <div class="overview-title">月度收支</div>
+                <div class="summary-grid full-width">
+                    <div class="summary-box">
+                        <div class="summary-title">总收入</div>
+                        <div class="summary-value income">+${getValue('total_income', summaryNode) || '0'}</div>
+                    </div>
+                    <div class="summary-box">
+                        <div class="summary-title">总支出</div>
+                        <div class="summary-value expense">-${getValue('total_expense', summaryNode) || '0'}</div>
+                    </div>
+                    <div class="summary-box">
+                        <div class="summary-title">净结余</div>
+                        <div class="summary-value ${parseInt(netBalanceVal) >= 0 ? 'income' : 'expense'}">${netBalanceVal || '0'}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="overview-section">
+                <div class="overview-title">府库累计</div>
+                <div class="summary-grid">
+                    <div class="summary-box">
+                        <div class="summary-title">库银总计</div>
+                        <div class="summary-value">${getValue('total_silver', treasuryNode) || '0'} 两</div>
+                    </div>
+                    <div class="summary-box">
+                        <div class="summary-title">粮草总计</div>
+                        <div class="summary-value">${getValue('total_grain', treasuryNode) || '0'} 石</div>
+                    </div>
+                </div>
+            </div>
+        `;
+                factionHtml += `
+            <div class="faction-category collapsed">
+                <div class="faction-header" onclick="this.parentElement.classList.toggle('collapsed')">产业详情</div>
+                <div class="faction-content">${industriesContent}</div>
+            </div>
+            <div class="faction-category collapsed">
+                <div class="faction-header" onclick="this.parentElement.classList.toggle('collapsed')">部曲兵备</div>
+                <div class="faction-content">${forcesContent}</div>
+            </div>
+            ${summaryContent}
+        `;
+            } else {
+                factionHtml += '<div class="info-line" style="justify-content:center;"><span class="info-value">尚未建立势力</span></div>';
+            }
+            factionHtml += '</div>';
+            let backgroundEventsHtml = '';
+            const bgNodes = xmlDoc.querySelectorAll("event");
+            if (bgNodes.length > 0) {
+                bgNodes.forEach(node => {
+                    let title = node.getAttribute('title');
+                    let content = node.textContent.trim();
+                    if (title && content) {
+                        backgroundEventsHtml += `<div class="bg-event-item"><div class="bg-event-title">${title}</div><div class="bg-event-text">${content}</div></div>`;
+                    }
+                });
+            }
+            if (!backgroundEventsHtml) { backgroundEventsHtml = `<div class="bg-empty">风平浪静，暗流涌动</div>`; }
+            const backgroundPanel = `<div class="info-panel background-events"><h2 class="panel-title">天下暗流</h2><div>${backgroundEventsHtml}</div></div>`;
+
+            // [历史大事进度] 新增
+            const histNode = xmlDoc.querySelector("historical_progress");
+            let historicalHtml = '<div class="info-panel historical"><h2 class="panel-title">历史大事</h2>';
+            if (histNode) {
+                const events = histNode.querySelectorAll("event");
+                if (events.length > 0) {
+                    events.forEach(ev => {
+                        const name = ev.getAttribute('name') || '未知事件';
+                        const status = getValue('status', ev) || '未触发';
+                        const threshold = getValue('threshold', ev) || '条件未知';
+                        const conditions = ev.querySelectorAll('condition');
+                        let condHtml = '';
+                        conditions.forEach(c => {
+                            const cname = c.getAttribute('name') || '';
+                            const progress = c.getAttribute('progress') || '0/0';
+                            const difficulty = c.getAttribute('difficulty') || '?';
+                            const details = c.textContent.trim() || '';
+                            condHtml += `
+                        <div class="condition-item">
+                            <span class="condition-name">${cname}</span>
+                            <span class="condition-progress">${progress}</span>
+                            <span class="condition-difficulty">${difficulty}</span>
+                            <span class="condition-details">${details}</span>
+                        </div>
+                    `;
+                        });
+                        historicalHtml += `
+                    <div class="hist-category collapsed">
+                        <div class="hist-header hist-name" onclick="this.parentElement.classList.toggle('collapsed')">${name}</div>
+                        <div class="hist-content">
+                            <div class="hist-status">状态：${status}</div>
+                            <div class="hist-threshold">达成条件：${threshold}</div>
+                            <div class="condition-list">${condHtml || '<div class="hist-empty">暂无条件</div>'}</div>
+                        </div>
+                    </div>
+                `;
+                    });
+                } else {
+                    historicalHtml += '<div class="hist-empty">尚未介入任何历史大事</div>';
+                }
+            } else {
+                historicalHtml += '<div class="hist-empty">尚未介入任何历史大事</div>';
+            }
+            historicalHtml += '</div>';
+
+            let subsHtml = '';
+            const subNodes = xmlDoc.querySelectorAll("subordinate");
+            if (subNodes.length > 0) {
+                subsHtml = Array.from(subNodes).map(n => {
+                    const name = n.getAttribute('name');
+                    const position = n.getAttribute('position');
+                    return (name && position) ? `<div class="rel-card"><span class="rel-name">${name}</span><span class="rel-tag tag-subordinate">${position}</span></div>` : '';
+                }).join('');
+            }
+            if (!subsHtml) { subsHtml = '<div class="rel-empty">暂无心腹</div>'; }
+            let acqsHtml = '';
+            const acqNodes = xmlDoc.querySelectorAll("acquaintance");
+            if (acqNodes.length > 0) {
+                acqsHtml = Array.from(acqNodes).map(n => {
+                    const name = n.getAttribute('name');
+                    const attitude = n.getAttribute('attitude');
+                    return (name && attitude) ? `<div class="rel-card"><span class="rel-name">${name}</span><span class="rel-tag tag-attitude">${attitude}</span></div>` : '';
+                }).join('');
+            }
+            if (!acqsHtml) { acqsHtml = '<div class="rel-empty">暂无故旧</div>'; }
+            const relationshipPanel = `
+        <div class="info-panel relationships">
+            <h2 class="panel-title">人脉盘根</h2>
+            <div class="rel-category collapsed">
+                <div class="rel-header" onclick="this.parentElement.classList.toggle('collapsed')">麾下僚属</div>
+                <div class="rel-content">${subsHtml}</div>
+            </div>
+            <div class="rel-category collapsed">
+                <div class="rel-header" onclick="this.parentElement.classList.toggle('collapsed')">朝野故旧</div>
+                <div class="rel-content">${acqsHtml}</div>
+            </div>
+        </div>`;
+            const CONSORT_PORTRAITS = { '白素素': 'https://files.catbox.moe/8qpmp1.png', '卞玉京': 'https://files.catbox.moe/bdzxs6.png', '陈璃': 'https://files.catbox.moe/j3h7vw.png', '董小宛': 'https://files.catbox.moe/yysme5.png', '寇白门': 'https://files.catbox.moe/64zh7e.png', '柳如是': 'https://files.catbox.moe/sbgay9.png', '李香君': 'https://files.catbox.moe/91ysjx.png', '红娘子': 'https://files.catbox.moe/tdlnlq.png', '秦良玉': 'https://files.catbox.moe/xqai2w.png' };
+            const consortNodes = xmlDoc.querySelectorAll("consort");
+            let householdHtml = '';
+            let consortCardsHtml = '';
+            if (consortNodes.length > 0) {
+                consortCardsHtml = Array.from(consortNodes).map(node => {
+                    const name = getValue('name', node);
+                    if (!name) return '';
+                    const title = getValue('title', node);
+                    const status = getValue('status', node);
+                    const portraitUrl = CONSORT_PORTRAITS[name] || 'https://files.catbox.moe/o7pyrr.png';
+                    return `<div class="consort-card" onclick="this.classList.toggle('is-flipped')"><div class="card-face card-front"><div class="consort-header"><span class="consort-name">${name}</span><span class="consort-title">${title}</span></div><div class="consort-details">近况：<br><strong>${status}</strong></div></div><div class="card-face card-back" style="background-image: url('${portraitUrl}');"></div></div>`;
+                }).join('');
+            }
+            if (consortCardsHtml) {
+                householdHtml = `<div class="info-panel household"><h2 class="panel-title">府中内眷</h2><div class="household-list">${consortCardsHtml}</div></div>`;
+            } else {
+                householdHtml = `<div class="info-panel household"><h2 class="panel-title">府中内眷</h2><div class="info-line" style="justify-content:center;"><span class="info-value">暂无女眷入住</span></div></div>`;
+            }
+            // 民国二十年（1931年）地图数据（更新为民国主要城市及描述）
+            const mapHtml = `
+        <div class="info-panel map">
+            <h2 class="panel-title">民国全图（1931年）</h2>
+            <div id="map-subtitle" class="map-subtitle"></div>
+            <div class="map-wrapper">
+                <div id="map-container">
+                    <div id="echarts-map"></div>
+                </div>
+            </div>
+        </div>
+        <div id="modal-overlay">
+            <div id="modal-scroll">
+                <div id="modal-body" style="display:flex; height:100%;">
+                    <div id="modal-header"><h1 id="modal-title"></h1><div id="modal-seal"></div></div>
+                    <div id="modal-text-container"><div id="modal-text-content"></div></div>
+                </div>
+            </div>
+        </div>`;
+            // 4. 组装并渲染
+            outputContainer.innerHTML = `<div class="da-yan-container"><div class="scroll-content">
+        <header class="main-header"><div style="font-family: var(--font-brush); font-size: 2.5em; color: var(--color-primary-red); margin-bottom: 10px;">民国浮生录</div><div id="user-name-display">${userName}</div><div id="time-subtitle">${currentTime}</div></header>
+        <div class="main-content-area">${userProfileHtml}${factionHtml}${backgroundPanel}${historicalHtml}${relationshipPanel}${mapHtml}${householdHtml}</div>
+    </div></div>`;
+            // 5. 动态背景与交互
+            const timeMap = { morning: ['卯', '辰', '巳'], noon: ['午'], afternoon: ['未', '申'], evening: ['酉', '戌', '亥', '子', '丑', '寅'] };
+            const backgroundImages = {
+                morning: ['https://files.catbox.moe/i796gj.png'], noon: ['https://files.catbox.moe/mo28db.png'],
+                afternoon: ['https://files.catbox.moe/af1ep9.png'], evening: ['https://files.catbox.moe/9431rf.png']
+            };
+            let period = 'evening';
+            for (const p in timeMap) { if (timeMap[p].some(t => currentTime.includes(t + '时'))) period = p; }
+            const bgUrl = backgroundImages[period][0];
+            document.querySelector('.da-yan-container').style.backgroundImage = `url('${bgUrl}')`;
+            // 民国二十年（1931年）城市数据
+            const locationsData = {
+                "南京": { seal: "首都", title: "南京", content: "<p><span class='section-title'>民国二十年</span>国民政府首都，政治中枢。明故宫旧址设中央政治区，下关商埠繁忙，街头时有学生游行请愿。长江水患初兆，人心惶惶。</p>" },
+                "上海": { seal: "上海特别市", title: "上海", content: "<p><span class='section-title'>远东第一大都会</span>公共租界、法租界与华界并存。外滩银行林立，南京路四大百货公司争艳。中共、国民党特务在此角力，左翼文化运动活跃。</p>" },
+                "北平": { seal: "北平特别市", title: "北平", content: "<p><span class='section-title'>故都北平</span>明清故宫、三海犹存，东交民巷使馆区。北大、清华等高校汇聚，学生运动风起云涌。张学良坐镇顺承王府，东北军进退维谷。</p>" },
+                "天津": { seal: "天津特别市", title: "天津", content: "<p><span class='section-title'>北方商埠</span>各国租界林立，日、法、英势力交错。工商业发达，码头繁忙。日本驻屯军虎视华北。</p>" },
+                "广州": { seal: "广州", title: "广州", content: "<p><span class='section-title'>南方革命中心</span>粤系陈济棠主政，推行三年施政计划。五月广州成立“国民政府”，与南京对峙。兴中会、同盟会遗风犹存。</p>" },
+                "武汉": { seal: "武汉", title: "武汉", content: "<p><span class='section-title'>九省通衢</span>武昌、汉口、汉阳三镇，长江中游军政中心。汉阳兵工厂、汉冶萍公司重工业基地。鄂豫皖红军活动频繁。</p>" },
+                "重庆": { seal: "重庆", title: "重庆", content: "<p><span class='section-title'>长江上游重镇</span>川军刘湘核心地盘，商业繁盛。日后抗战陪都，此时尚未迁都。</p>" },
+                "西安": { seal: "西安", title: "西安", content: "<p><span class='section-title'>西北首府</span>杨虎城主政，整顿军政。陇海铁路延伸至此，成为西北门户。中共陕北根据地渐成气候。</p>" },
+                "沈阳": { seal: "沈阳", title: "沈阳", content: "<p><span class='section-title'>东北中心</span>东北边防军司令长官公署驻地，日本关东军司令部、满铁本社亦设于此。九一八事变前夜，局势一触即发。</p>" },
+                "长春": { seal: "长春", title: "长春", content: "<p><span class='section-title'>北满枢纽</span>日本南满铁路与中东铁路交汇点。日资涌入，未来伪满“新京”。万宝山事件即将爆发。</p>" },
+                "哈尔滨": { seal: "哈尔滨", title: "哈尔滨", content: "<p><span class='section-title'>东方莫斯科</span>中东铁路枢纽，俄、日、欧美势力交错。流亡的白俄与抗日志士活跃。</p>" },
+                "青岛": { seal: "青岛", title: "青岛", content: "<p><span class='section-title'>胶澳商埠</span>原德国租借地，日本势力深厚。纺织业发达，工人运动频发。</p>" },
+                "济南": { seal: "济南", title: "济南", content: "<p><span class='section-title'>山东省会</span>韩复榘主政，厉行集权，截留税收。胶济铁路起点。</p>" },
+                "太原": { seal: "太原", title: "太原", content: "<p><span class='section-title'>晋阳故地</span>阎锡山虽避居大连，但晋系仍控制山西。太原兵工厂自产军火。</p>" },
+                "郑州": { seal: "郑州", title: "郑州", content: "<p><span class='section-title'>中原枢纽</span>平汉、陇海铁路交汇，新兴商埠。战略要冲。</p>" },
+                "杭州": { seal: "杭州", title: "杭州", content: "<p><span class='section-title'>浙江省会</span>丝茶之府，风景名胜。蒋介石、陈果夫等故里。</p>" },
+                "福州": { seal: "福州", title: "福州", content: "<p><span class='section-title'>福建省会</span>马尾船政旧址，对台防务前沿。十九路军驻扎。</p>" },
+                "台北": { seal: "台北", title: "台北", content: "<p><span class='section-title'>台湾总督府</span>日本殖民统治中心，推行皇民化教育。台湾文化协会等抗日组织暗中活动。</p>" },
+                "昆明": { seal: "昆明", title: "昆明", content: "<p><span class='section-title'>云南省会</span>龙云主政，编练滇军。英法势力渗透，滇越铁路直通越南。</p>" },
+                "成都": { seal: "成都", title: "成都", content: "<p><span class='section-title'>四川省会</span>川军刘文辉、刘湘争雄，防区制盛行。成都、重庆两派对峙，民不堪命。</p>" },
+                "兰州": { seal: "兰州", title: "兰州", content: "<p><span class='section-title'>甘肃省会</span>西北咽喉要地。马鸿宾任省主席，马家军势力影响甘宁青三省。</p>" },
+                "迪化": { seal: "迪化", title: "迪化", content: "<p><span class='section-title'>新疆省会</span>金树仁主政，哈密暴动已起，马仲英入新。苏联势力渗透。</p>" },
+                "拉萨": { seal: "拉萨", title: "拉萨", content: "<p><span class='section-title'>西藏地方</span>噶厦政府统治，十三世达赖主政。英国在藏南渗透，中央政府驻藏办事处存在但控制力弱。</p>" },
+                "开封": { seal: "河南省会", title: "开封", content: "<p><span class='section-title'>河南省会</span>八朝古都，陇海铁路经过。省主席刘峙驻此。黄河水患频仍，豫西匪患不断。</p>" },
+                "南昌": { seal: "江西省会", title: "南昌", content: "<p><span class='section-title'>江西省会</span>1927年起义之城。熊式辉任省主席，协调围剿井冈山红军。中央苏区近在咫尺。</p>" },
+                "长沙": { seal: "湖南省会", title: "长沙", content: "<p><span class='section-title'>湖南省会</span>何键主湘，厉行清党。鱼米之乡，湘军善战。红军在湘赣边界活动频繁。</p>" },
+                "南宁": { seal: "广西省会", title: "南宁", content: "<p><span class='section-title'>广西省会</span>李宗仁、白崇禧新桂系主政。推行广西自治、建设模范省。与南京中央若即若离。</p>" },
+                "贵阳": { seal: "贵州省会", title: "贵阳", content: "<p><span class='section-title'>贵州省会</span>毛光翔主政，黔军派系林立。交通闭塞，民生困苦。</p>" },
+                "安庆": { seal: "安徽省会", title: "安庆", content: "<p><span class='section-title'>安徽省会</span>省政府驻安庆，陈调元任省主席。长江航运要冲。</p>" },
+                "归绥": { seal: "绥远省会", title: "归绥", content: "<p><span class='section-title'>绥远省会</span>今呼和浩特。李培基任省主席。蒙汉杂居，边防重镇，防范外蒙与苏联渗透。</p>" },
+                "承德": { seal: "热河省会", title: "承德", content: "<p><span class='section-title'>热河省会</span>避暑山庄所在地。汤玉麟任热河省主席。东北军系统，与张学良关系密切。日军觊觎热河。</p>" },
+                "张家口": { seal: "察哈尔省会", title: "张家口", content: "<p><span class='section-title'>察哈尔省会</span>长城沿线军事重镇，京张铁路终点。宋哲元任省主席。蒙古高原门户。</p>" },
+                "银川": { seal: "宁夏省会", title: "银川", content: "<p><span class='section-title'>宁夏省会</span>马鸿逵势力范围。黄河灌溉，塞上江南。回汉杂居，马家军世代经营。</p>" },
+                "西宁": { seal: "青海省会", title: "西宁", content: "<p><span class='section-title'>青海省会</span>马步芳家族经营之地。藏、回、蒙古多民族交汇。地处偏远，中央鞭长莫及。</p>" },
+                "康定": { seal: "西康", title: "康定", content: "<p><span class='section-title'>西康筹备区</span>川藏茶马古道重镇。刘文辉经略康区，西康建省委员会驻此。藏康冲突不断。</p>" },
+                "大连": { seal: "关东州", title: "大连", content: "<p><span class='section-title'>日本租借地</span>关东州首府，日本关东军司令部所在地。满铁总部设于此。九一八事变策划中心。</p>" },
+                "保定": { seal: "保定", title: "保定", content: "<p><span class='section-title'>直隶故城</span>前直隶总督驻地，保定军校培养大批民国将领。军事重镇，京汉铁路要站。</p>" },
+                "徐州": { seal: "徐州", title: "徐州", content: "<p><span class='section-title'>五省通衢</span>津浦、陇海铁路交汇，兵家必争之地。中原大战主战场，战略地位极重。</p>" },
+                "洛阳": { seal: "洛阳", title: "洛阳", content: "<p><span class='section-title'>九朝古都</span>陇海铁路重镇。冯玉祥曾驻兵于此，中原大战后仍为军事要地。</p>" },
+                "瑞金": { seal: "中央苏区", title: "瑞金", content: "<p><span class='section-title'>红色首都</span>中华苏维埃共和国临时中央政府所在地。毛泽东、朱德领导工农红军在此建立根据地。</p>" },
+                "延安": { seal: "延安", title: "延安", content: "<p><span class='section-title'>陕北重镇</span>刘志丹、谢子长在此创建陕北红军根据地。日后将成为中共中央驻地。</p>" },
+                "包头": { seal: "包头", title: "包头", content: "<p><span class='section-title'>绥远重镇</span>蒙汉贸易集散地，平绥铁路西端重镇。塞外商埠，皮毛集散中心。</p>" },
+                "齐齐哈尔": { seal: "齐齐哈尔", title: "齐齐哈尔", content: "<p><span class='section-title'>黑龙江省城</span>黑龙江省早期省会。中东铁路支线经过，日俄角力之地。马占山将在此抗日。</p>" },
+                "吉林": { seal: "吉林", title: "吉林", content: "<p><span class='section-title'>吉林省城</span>松花江畔，吉林省早期省会。满族文化重镇，东北军驻防要地。</p>" },
+                "锦州": { seal: "锦州", title: "锦州", content: "<p><span class='section-title'>辽西走廊</span>关内外咽喉，北宁铁路要站。张学良东北军重兵驻防之地。</p>" },
+                "汕头": { seal: "汕头", title: "汕头", content: "<p><span class='section-title'>粤东商埠</span>开埠通商口岸，华侨之乡。海运发达，潮汕文化中心。</p>" },
+                "桂林": { seal: "桂林", title: "桂林", content: "<p><span class='section-title'>广西名城</span>山水甲天下。桂系经营之地，军事训练基地。</p>" },
+                "宜昌": { seal: "宜昌", title: "宜昌", content: "<p><span class='section-title'>川鄂门户</span>长江三峡入口，水路转运重镇。入川必经之路。</p>" },
+                "厦门": { seal: "厦门", title: "厦门", content: "<p><span class='section-title'>闽南商埠</span>鼓浪屿公共租界，各国领事馆林立。南洋华侨联络要港。</p>" },
+                "芜湖": { seal: "芜湖", title: "芜湖", content: "<p><span class='section-title'>皖江要冲</span>四大米市之一，长江沿岸商埠。宁芜铁路连接南京。</p>" },
+                "东京": { seal: "大日本帝国", title: "东京", content: "<p><span class='section-title'>帝国首都</span>大日本帝国政治中心。军部势力抬头，九一八事变幕后策源。工业化迅速推进，对外扩张野心膨胀。</p>" },
+                "京城": { seal: "朝鲜总督府", title: "京城", content: "<p><span class='section-title'>日占朝鲜</span>朝鲜总督府所在地，日本殖民统治中心。三一运动后文化政治推行，然朝鲜独立运动暗潮汹涌。</p>" },
+                "大阪": { seal: "大阪", title: "大阪", content: "<p><span class='section-title'>日本工商重镇</span>东方曼彻斯特，纺织与重工业中心。</p>" },
+                "库伦": { seal: "蒙古人民共和国", title: "库伦", content: "<p><span class='section-title'>外蒙古首府</span>蒙古人民共和国首都，苏联卫星国。1924年更名乌兰巴托。苏联驻军，中国名义宗主权已名存实亡。</p>" },
+                "河内": { seal: "法属印度支那", title: "河内", content: "<p><span class='section-title'>法属东京首府</span>法属印度支那联邦总督驻地。胡志明流亡海外组织革命，越南民族主义运动兴起。</p>" },
+                "仰光": { seal: "英属缅甸", title: "仰光", content: "<p><span class='section-title'>英属缅甸首府</span>1937年前隶属英属印度。滇缅公路未来的起点，连接中国西南的战略要道。</p>" },
+                "马尼拉": { seal: "美属菲律宾", title: "马尼拉", content: "<p><span class='section-title'>美属菲律宾首府</span>美国殖民统治下，自治进程缓慢推进。太平洋战略要冲。</p>" },
+                "海参崴": { seal: "苏联远东", title: "海参崴", content: "<p><span class='section-title'>苏联太平洋舰队</span>符拉迪沃斯托克，苏联远东军区重镇。中东路事件后中苏关系紧张。</p>" },
+                "镇江": { seal: "江苏省会", title: "镇江", content: "<p><span class='section-title'>江苏省会</span>1928年南京设为特别市后，江苏省政府迁驻镇江。长江与京杭运河交汇处，金山、焦山名胜。英租界尚存，商贸繁盛。</p>" },
+                "南通": { seal: "南通", title: "南通", content: "<p><span class='section-title'>模范县</span>张謇创办大生纱厂、通海垦牧公司，开近代民族工业先河。教育、慈善事业发达，被誉为'中国近代第一城'。</p>" },
+                "苏州": { seal: "苏州", title: "苏州", content: "<p><span class='section-title'>人间天堂</span>丝绸之府，园林甲天下。沪宁铁路经过，工商业繁荣。日资纱厂与民族工业竞争激烈。</p>" },
+                "嘉兴": { seal: "嘉兴", title: "嘉兴", content: "<p><span class='section-title'>鱼米之乡</span>沪杭铁路经过，丝绸、粮食集散地。1921年中共一大南湖续会之地。</p>" },
+                "绍兴": { seal: "绍兴", title: "绍兴", content: "<p><span class='section-title'>越中名邑</span>鲁迅故里，黄酒之乡。师爷文化传统深厚，辛亥革命志士辈出之地。</p>" },
+                "合肥": { seal: "合肥", title: "合肥", content: "<p><span class='section-title'>庐州故地</span>淮军发源地，李鸿章故里。皖中平原腹地，连接南北的交通要冲。</p>" },
+                "九江": { seal: "九江", title: "九江", content: "<p><span class='section-title'>浔阳江头</span>长江中游重要港口，庐山脚下。英、日租界存留，茶叶贸易重镇。兵家必争的江防要塞。</p>" },
+                "遵义": { seal: "遵义", title: "遵义", content: "<p><span class='section-title'>黔北重镇</span>川黔要道，商贸集散地。日后红军长征将在此召开转折性会议。</p>" },
+                "信阳": { seal: "信阳", title: "信阳", content: "<p><span class='section-title'>豫南门户</span>平汉铁路重镇，鄂豫皖苏区边沿。鸡公山为避暑胜地，外国人聚居。红四方面军活动频繁。</p>" },
+                "南阳": { seal: "南阳", title: "南阳", content: "<p><span class='section-title'>南都帝乡</span>诸葛亮躬耕之地。南阳盆地农业富庶，宛西自治运动兴起。别廷芳主导地方自治，颇有成效。</p>" },
+                "常德": { seal: "常德", title: "常德", content: "<p><span class='section-title'>洞庭西岸</span>湘西北重镇，沅水航运枢纽。棉花、桐油集散地，商贸繁荣。</p>" },
+                "衡阳": { seal: "衡阳", title: "衡阳", content: "<p><span class='section-title'>雁城</span>粤汉铁路与湘桂铁路交汇处，湘南军事重镇。南岳衡山所在，兵家必争之地。</p>" },
+                "岳阳": { seal: "岳阳", title: "岳阳", content: "<p><span class='section-title'>巴陵</span>岳阳楼下，洞庭湖畔。粤汉铁路经过，长江水运要冲。鱼米之乡。</p>" },
+                "宜春": { seal: "宜春", title: "宜春", content: "<p><span class='section-title'>赣西重镇</span>浙赣铁路经过，连接浙江与湖南。赣西农业区中心，物产丰饶。</p>" },
+                "大同": { seal: "大同", title: "大同", content: "<p><span class='section-title'>晋北重镇</span>平绥铁路与同蒲铁路交汇，煤炭资源丰富。云冈石窟名闻天下。晋绥边防要地，扼守雁门关外。</p>" },
+                "宝鸡": { seal: "宝鸡", title: "宝鸡", content: "<p><span class='section-title'>关中西府</span>陇海铁路西段重镇，入蜀入陇之咽喉。宝鸡峡灌溉关中平原，农业命脉。</p>" },
+                "营口": { seal: "营口", title: "营口", content: "<p><span class='section-title'>辽河口岸</span>东北最早开埠通商口岸之一。辽河入海处，盐业、航运发达。日俄势力交错之地。</p>" }
+            };
+            // 城市经纬度坐标（以 ENP-China MCGD 学术数据为准）
+            const citiesGeo = {
+                // === 国内主要城市（MCGD校准） ===
+                "南京": [118.78, 32.04], "上海": [121.47, 31.23], "北平": [116.40, 39.90],
+                "天津": [117.20, 39.13], "广州": [113.26, 23.13], "武汉": [114.30, 30.59],
+                "重庆": [106.55, 29.56], "西安": [108.94, 34.27], "沈阳": [123.43, 41.80],
+                "长春": [125.32, 43.88], "哈尔滨": [126.63, 45.75], "青岛": [120.38, 36.07],
+                "济南": [117.00, 36.65], "太原": [112.49, 37.70], "郑州": [113.65, 34.76],
+                "杭州": [120.15, 30.29], "福州": [119.30, 26.08], "台北": [121.52, 25.05],
+                "昆明": [102.68, 25.04], "成都": [104.07, 30.67], "兰州": [103.83, 36.06],
+                "迪化": [87.57, 43.81], "拉萨": [91.11, 29.65],
+                "开封": [114.35, 34.79], "南昌": [115.86, 28.68], "长沙": [112.97, 28.20],
+                "南宁": [108.37, 22.81], "贵阳": [106.71, 26.57], "安庆": [117.05, 30.53],
+                "归绥": [111.65, 40.80], "承德": [117.87, 41.03], "张家口": [114.88, 40.82],
+                "银川": [106.27, 38.47], "西宁": [101.81, 36.62], "康定": [102.05, 30.08],
+                "大连": [121.62, 38.91],
+                "保定": [115.47, 38.87], "徐州": [117.18, 34.26], "洛阳": [112.43, 34.76],
+                "瑞金": [115.98, 25.80], "延安": [109.49, 36.60], "包头": [110.11, 40.62],
+                "齐齐哈尔": [123.97, 47.35], "吉林": [126.57, 43.91], "锦州": [121.13, 41.10],
+                "汕头": [116.68, 23.35], "桂林": [110.16, 25.35], "宜昌": [111.28, 30.69],
+                "厦门": [118.09, 24.44], "芜湖": [118.38, 31.33],
+                // === MCGD新增城市 ===
+                "镇江": [119.45, 32.20], "南通": [120.88, 32.03], "苏州": [120.62, 31.31],
+                "嘉兴": [120.74, 30.77], "绍兴": [120.57, 30.00],
+                "合肥": [117.30, 31.90], "九江": [116.04, 29.72],
+                "遵义": [106.90, 27.70], "信阳": [114.14, 32.15], "南阳": [112.54, 33.05],
+                "常德": [111.53, 29.05], "衡阳": [112.57, 26.94], "岳阳": [113.19, 29.46],
+                "宜春": [114.37, 27.78], "大同": [113.26, 40.12],
+                "宝鸡": [106.98, 34.27], "营口": [122.21, 40.68],
+                // === 外国城市 ===
+                "东京": [139.69, 35.69], "京城": [126.98, 37.57], "大阪": [135.50, 34.69],
+                "库伦": [106.92, 47.92], "河内": [105.85, 21.02], "仰光": [96.17, 16.87],
+                "马尼拉": [120.98, 14.60], "海参崴": [131.87, 43.12]
+            };
+            const cityTypes = {
+                "南京": "capital", "长春": "military", "大连": "military",
+                "瑞金": "military", "延安": "military", "锦州": "military",
+                "东京": "foreign", "京城": "foreign", "大阪": "foreign",
+                "库伦": "foreign", "河内": "foreign", "仰光": "foreign",
+                "马尼拉": "foreign", "海参崴": "foreign", "台北": "foreign"
+            };
+            const locMap = {
+                "南京": ["南京", "江宁", "首都", "南京特别市"], "上海": ["上海", "沪", "申"],
+                "北平": ["北平", "北京", "京师"], "天津": ["天津", "津"], "广州": ["广州", "粤"],
+                "武汉": ["武汉", "武昌", "汉口", "汉阳"], "重庆": ["重庆", "渝"],
+                "西安": ["西安", "长安"], "沈阳": ["沈阳", "奉天"], "长春": ["长春"],
+                "哈尔滨": ["哈尔滨"], "青岛": ["青岛"], "济南": ["济南"], "太原": ["太原"],
+                "郑州": ["郑州"], "杭州": ["杭州"], "福州": ["福州"], "台北": ["台北", "台湾"],
+                "昆明": ["昆明"], "成都": ["成都"], "兰州": ["兰州"],
+                "迪化": ["迪化", "乌鲁木齐"], "拉萨": ["拉萨"],
+                "开封": ["开封"], "南昌": ["南昌"], "长沙": ["长沙"],
+                "南宁": ["南宁"], "贵阳": ["贵阳"], "安庆": ["安庆"],
+                "归绥": ["归绥", "呼和浩特"], "承德": ["承德", "热河"],
+                "张家口": ["张家口", "张垣"], "银川": ["银川"], "西宁": ["西宁"],
+                "康定": ["康定", "打箭炉"], "大连": ["大连", "关东州"],
+                "保定": ["保定"], "徐州": ["徐州"], "洛阳": ["洛阳"],
+                "瑞金": ["瑞金", "中央苏区"], "延安": ["延安"], "包头": ["包头"],
+                "齐齐哈尔": ["齐齐哈尔"], "吉林": ["吉林"], "锦州": ["锦州"],
+                "汕头": ["汕头"], "桂林": ["桂林"], "宜昌": ["宜昌"],
+                "厦门": ["厦门"], "芜湖": ["芜湖"],
+                "镇江": ["镇江"], "南通": ["南通"], "苏州": ["苏州", "姑苏"],
+                "嘉兴": ["嘉兴"], "绍兴": ["绍兴"],
+                "合肥": ["合肥", "庐州"], "九江": ["九江", "浔阳"],
+                "遵义": ["遵义"], "信阳": ["信阳"], "南阳": ["南阳"],
+                "常德": ["常德"], "衡阳": ["衡阳"], "岳阳": ["岳阳", "巴陵"],
+                "宜春": ["宜春"], "大同": ["大同"], "宝鸡": ["宝鸡"], "营口": ["营口"],
+                "东京": ["东京"], "京城": ["京城", "汉城", "首尔"],
+                "库伦": ["库伦", "乌兰巴托"], "河内": ["河内"],
+                "仰光": ["仰光"], "马尼拉": ["马尼拉"], "海参崴": ["海参崴", "符拉迪沃斯托克"]
+            };
+            // 匹配当前所在城市
+            let matchedKey = null;
+            for (let key in locMap) {
+                if (locMap[key].some(alias => location.includes(alias))) { matchedKey = key; break; }
+            }
+            // 初始化 ECharts 东亚地图
+            function initEChartsMap() {
+                const mapDom = document.getElementById('echarts-map');
+                if (!mapDom || typeof echarts === 'undefined' || !window.WORLD_1930) return;
+
+                // === 无限循环地图：在 ±360° 经度偏移位置复制世界数据 ===
+                function shiftCoords(coords, offset) {
+                    if (typeof coords[0] === 'number') return [coords[0] + offset, coords[1]];
+                    return coords.map(c => shiftCoords(c, offset));
+                }
+                const wrappedData = { type: 'FeatureCollection', features: [] };
+                for (const offset of [-360, 0, 360]) {
+                    for (const f of WORLD_1930.features) {
+                        wrappedData.features.push({
+                            type: 'Feature',
+                            properties: { ...f.properties },
+                            geometry: {
+                                type: f.geometry.type,
+                                coordinates: shiftCoords(f.geometry.coordinates, offset)
+                            }
+                        });
+                    }
+                }
+                echarts.registerMap('eastasia', wrappedData);
+
+                const chart = echarts.init(mapDom);
+
+                // 城市数据也在 ±360° 位置复制，实现城市标记的无限循环
+                function duplicateCities(cityList) {
+                    const result = [];
+                    for (const item of cityList) {
+                        for (const offset of [-360, 0, 360]) {
+                            result.push({ name: item.name, value: [item.value[0] + offset, item.value[1]] });
+                        }
+                    }
+                    return result;
+                }
+
+                // 分类城市数据
+                const capitalData = [], hubData = [], militaryData = [], foreignData = [], activeData = [];
+                for (const [name, coord] of Object.entries(citiesGeo)) {
+                    if (name === matchedKey) continue;
+                    const type = cityTypes[name] || 'hub';
+                    const item = { name, value: coord };
+                    if (type === 'capital') capitalData.push(item);
+                    else if (type === 'military') militaryData.push(item);
+                    else if (type === 'foreign') foreignData.push(item);
+                    else hubData.push(item);
+                }
+                if (matchedKey && citiesGeo[matchedKey]) {
+                    activeData.push({ name: matchedKey, value: citiesGeo[matchedKey] });
+                }
+
+                const labelStyle = {
+                    show: true, formatter: '{b}', position: 'top',
+                    color: '#e3c193', fontSize: 10, fontFamily: 'Noto Serif SC, serif',
+                    textBorderColor: '#000', textBorderWidth: 2
+                };
+
+                chart.setOption({
+                    backgroundColor: 'transparent',
+                    geo: {
+                        map: 'eastasia', roam: true,
+                        center: [110, 33],
+                        zoom: 18,
+                        label: { show: false },
+                        itemStyle: {
+                            areaColor: 'rgba(42, 36, 32, 0.85)',
+                            borderColor: 'rgba(227, 193, 147, 0.45)',
+                            borderWidth: 1
+                        },
+                        emphasis: {
+                            itemStyle: {
+                                areaColor: 'rgba(60, 50, 44, 0.95)',
+                                borderColor: 'rgba(227, 193, 147, 0.8)',
+                                borderWidth: 1.5
+                            },
+                            label: { show: true, color: '#e3c193', fontSize: 12 }
+                        },
+                        select: { disabled: true },
+                        regions: [
+                            { name: '南海诸岛', itemStyle: { opacity: 0 }, label: { show: false } }
+                        ]
+                    },
+                    series: [
+                        {
+                            type: 'effectScatter', coordinateSystem: 'geo',
+                            data: duplicateCities(capitalData), symbolSize: 14, showEffectOn: 'render',
+                            rippleEffect: { brushType: 'stroke', scale: 4, period: 3 },
+                            itemStyle: { color: '#d96b63', borderColor: '#000', borderWidth: 1 },
+                            label: { ...labelStyle, fontSize: 12, fontWeight: 'bold', color: '#f5d5a0' },
+                            zlevel: 2
+                        },
+                        {
+                            type: 'scatter', coordinateSystem: 'geo',
+                            data: duplicateCities(hubData), symbolSize: 8,
+                            itemStyle: { color: '#e3c193', borderColor: '#1a1210', borderWidth: 1 },
+                            label: labelStyle, zlevel: 2
+                        },
+                        {
+                            type: 'scatter', coordinateSystem: 'geo',
+                            data: duplicateCities(militaryData), symbol: 'diamond', symbolSize: 10,
+                            itemStyle: { color: '#5c8b99', borderColor: '#1a1210', borderWidth: 1 },
+                            label: labelStyle, zlevel: 2
+                        },
+                        {
+                            type: 'scatter', coordinateSystem: 'geo',
+                            data: duplicateCities(foreignData), symbol: 'triangle', symbolSize: 9,
+                            itemStyle: { color: '#a0705a', borderColor: '#1a1210', borderWidth: 1 },
+                            label: { ...labelStyle, color: '#b0978a', fontSize: 9 },
+                            zlevel: 2
+                        },
+                        {
+                            type: 'effectScatter', coordinateSystem: 'geo',
+                            data: duplicateCities(activeData), symbolSize: 16, showEffectOn: 'render',
+                            rippleEffect: { brushType: 'fill', scale: 5, period: 2 },
+                            itemStyle: { color: '#3CFF84', borderColor: '#fff', borderWidth: 1.5 },
+                            label: { ...labelStyle, color: '#fff', fontSize: 12, fontWeight: 'bold' },
+                            zlevel: 3
+                        }
+                    ]
+                });
+
+                // 点击城市弹出卷轴弹窗
+                const modalOverlay = document.getElementById('modal-overlay');
+                const modalScroll = document.getElementById('modal-scroll');
+                chart.on('click', 'series', function (params) {
+                    const data = locationsData[params.name];
+                    if (!data) return;
+                    document.getElementById('modal-title').textContent = data.title;
+                    document.getElementById('modal-seal').textContent = data.seal;
+                    document.getElementById('modal-text-content').innerHTML = data.content;
+                    modalOverlay.style.display = 'flex';
+                    setTimeout(() => modalScroll.classList.add('visible'), 10);
+                });
+                modalOverlay.addEventListener('click', (e) => {
+                    if (e.target === modalOverlay) {
+                        modalScroll.classList.remove('visible');
+                        setTimeout(() => modalOverlay.style.display = 'none', 600);
+                    }
+                });
+                window.addEventListener('resize', () => chart.resize());
+            }
+            // 更新副标题
+            if (matchedKey) {
+                const subtitleEl = document.getElementById('map-subtitle');
+                if (subtitleEl) { subtitleEl.innerHTML = `身处 ◈ <span style="color:#fff;">${matchedKey}</span>`; }
+            }
+            initEChartsMap();
+        })();
+    </script>
+</body>
+
+</html>
